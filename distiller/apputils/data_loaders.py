@@ -299,7 +299,7 @@ def get_data_loaders(datasets_fn, data_dir, batch_size, num_workers, validation_
     test_sampler = _get_sampler(test_indices, effective_test_size, fixed_subset, sequential)
     test_loader = torch.utils.data.DataLoader(test_dataset,
                                               batch_size=batch_size, sampler=test_sampler,
-                                              num_workers=num_workers, pin_memory=True, collate_fn=collate_fn)
+                                              num_workers=num_workers, pin_memory=num_workers == 0, collate_fn=collate_fn)
 
     input_shape = __image_size(test_dataset)
 
@@ -320,7 +320,7 @@ def get_data_loaders(datasets_fn, data_dir, batch_size, num_workers, validation_
     train_sampler = _get_sampler(train_indices, effective_train_size, fixed_subset, sequential)
     train_loader = torch.utils.data.DataLoader(train_dataset,
                                                batch_size=batch_size, sampler=train_sampler,
-                                               num_workers=num_workers, pin_memory=True,
+                                               num_workers=num_workers, pin_memory=num_workers == 0,
                                                worker_init_fn=worker_init_fn, collate_fn=collate_fn)
 
     valid_loader = None
@@ -328,7 +328,7 @@ def get_data_loaders(datasets_fn, data_dir, batch_size, num_workers, validation_
         valid_sampler = _get_sampler(valid_indices, effective_valid_size, fixed_subset, sequential)
         valid_loader = torch.utils.data.DataLoader(train_dataset,
                                                    batch_size=batch_size, sampler=valid_sampler,
-                                                   num_workers=num_workers, pin_memory=True,
+                                                   num_workers=num_workers, pin_memory=num_workers == 0,
                                                    worker_init_fn=worker_init_fn, collate_fn=collate_fn)
 
     # If validation split was 0 we use the test set as the validation set
