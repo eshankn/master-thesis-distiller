@@ -80,7 +80,9 @@ class PythonLogger(DataLogger):
         else:
             log = 'Test: [{:5d}/{:5d}]    '.format(completed, int(total))
         for name, val in stats_dict.items():
-            if isinstance(val, int):
+            if val is None:
+                log = log + ' ' * len(name) + '              '
+            elif isinstance(val, int):
                 log = log + '{name} {val}    '.format(name=name, val=distiller.pretty_int(val))
             else:
                 log = log + '{name} {val:.6f}    '.format(name=name, val=val)
@@ -147,7 +149,8 @@ class TensorBoardLogger(DataLogger):
         stats_dict = stats_dict[1]
 
         for tag, value in stats_dict.items():
-            self.tblogger.scalar_summary(prefix+tag, value, total_steps(total, epoch, completed))
+            if value is not None:
+                self.tblogger.scalar_summary(prefix+tag, value, total_steps(total, epoch, completed))
         self.tblogger.sync_to_file()
 
     def log_activation_statistic(self, phase, stat_name, activation_stats, epoch):
