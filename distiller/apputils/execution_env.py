@@ -30,7 +30,7 @@ import sys
 import time
 import pkg_resources
 
-from git import Repo, InvalidGitRepositoryError
+# from git import Repo, InvalidGitRepositoryError
 import numpy as np
 import torch
 try:
@@ -97,7 +97,7 @@ def log_execution_env_state(config_paths=None, logdir=None):
         return {x.key:x.version for x in sorted(pkg_resources.working_set,
                                                 key=operator.attrgetter('key'))}
     logger.debug("pip freeze: {}".format(_pip_freeze()))
-    log_git_state()
+    # log_git_state()
     logger.debug("Command line: %s", " ".join(sys.argv))
 
     if (logdir is None) or (config_paths is None):
@@ -139,7 +139,7 @@ def config_pylogger(log_cfg_file, experiment_name, output_dir='logs', verbose=Fa
     if os.path.isfile(log_cfg_file):
         logging.config.fileConfig(log_cfg_file, defaults={'logfilename': log_filename})
     else:
-        print("Could not find the logger configuration file (%s) - using default logger configuration" % log_cfg_file)
+        # print("Could not find the logger configuration file (%s) - using default logger configuration" % log_cfg_file)
         apply_default_logger_cfg(log_filename)
     msglogger = logging.getLogger()
     msglogger.logdir = logdir
