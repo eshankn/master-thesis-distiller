@@ -136,6 +136,9 @@ def config_pylogger(log_cfg_file, experiment_name, output_dir='logs', verbose=Fa
     if not os.path.exists(logdir):
         os.makedirs(logdir)
     log_filename = os.path.join(logdir, exp_full_name + '.log')
+    if sys.platform == 'win32':
+        # fileConfig treats '\\' as escape characters rather than path separators
+        log_filename = log_filename.replace('\\', '/')
     if os.path.isfile(log_cfg_file):
         logging.config.fileConfig(log_cfg_file, defaults={'logfilename': log_filename})
     else:
