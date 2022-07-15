@@ -42,13 +42,13 @@ __all__ = ['model_summary',
            'draw_model_to_file', 'draw_img_classifier_to_file', 'export_img_classifier_to_onnx']
 
 
-def model_summary(model, what, dataset=None, logdir=''):
+def model_summary(model, what, dataset=None, logdir='', log_1d=False):
     if what.startswith('png'):
         png_fname = os.path.join(logdir, 'model.png')
         draw_img_classifier_to_file(model, png_fname, dataset, what == 'png_w_params')
     elif what == 'sparsity':
-        pylogger = PythonLogger(msglogger)
-        csvlogger = CsvLogger(logdir=logdir)
+        pylogger = PythonLogger(msglogger, log_1d=log_1d)
+        csvlogger = CsvLogger(logdir=logdir, log_1d=log_1d)
         distiller.log_weights_sparsity(model, -1, loggers=[pylogger, csvlogger])
     elif what == 'compute':
         try:
