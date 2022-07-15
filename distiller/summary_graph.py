@@ -363,7 +363,7 @@ class SummaryGraph(object):
                     # Todo: change the method for calculating MACs
                     msglogger.error("An input to a Convolutional layer is missing shape information "
                                     "(MAC values will be wrong)")
-                    msglogger.error("For details see https://github.com/NervanaSystems/distiller/issues/168")
+                    msglogger.error("For details see https://github.com/IntelLabs/distiller/issues/168")
                     op['attrs']['MACs'] = 0
             elif op['type'] == 'Gemm':
                 conv_out = op['outputs'][0]
@@ -373,7 +373,7 @@ class SummaryGraph(object):
                     n_ofm = self.param_shape(conv_out)[1]
                 except IndexError:
                     msglogger.error("An input to a Convolutional layer is missing shape information.")
-                    msglogger.error("For details see https://github.com/NervanaSystems/distiller/issues/360")
+                    msglogger.error("For details see https://github.com/IntelLabs/distiller/issues/360")
                     n_ifm = n_ofm = 0
 
                 # MACs = #IFM * #OFM
