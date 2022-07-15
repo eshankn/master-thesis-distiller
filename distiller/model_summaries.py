@@ -83,7 +83,7 @@ def weights_sparsity_summary(model, return_total_sparsity=False, param_dims=[2, 
     df = pd.DataFrame(columns=['Name', 'Shape', 'NNZ (dense)', 'NNZ (sparse)',
                                'Cols (%)', 'Rows (%)', 'Ch (%)', '2D (%)', '3D (%)',
                                'Fine (%)', 'Std', 'Mean', 'Abs-Mean'])
-    pd.set_option('precision', 2)
+    pd.set_option('display.precision', 2)
     params_size = 0
     sparse_params_size = 0
     for name, param in model.state_dict().items():
@@ -134,7 +134,7 @@ def weights_sparsity_tbl_summary(model, return_total_sparsity=False, param_dims=
 
 def masks_sparsity_summary(model, scheduler, param_dims=[2, 4]):
     df = pd.DataFrame(columns=['Name', 'Fine (%)'])
-    pd.set_option('precision', 2)
+    pd.set_option('display.precision', 2)
     params_size = 0
     sparse_params_size = 0
     for name, param in model.state_dict().items():
@@ -257,7 +257,7 @@ def attributes_summary(sgraph, ignore_attrs):
         return ret
 
     df = pd.DataFrame(columns=['Name', 'Type', 'Attributes'])
-    pd.set_option('precision', 5)
+    pd.set_option('display.precision', 5)
     for i, op in enumerate(sgraph.ops.values()):
         df.loc[i] = [op['name'], op['type'], pretty_attrs(op['attrs'], ignore_attrs)]
     return df
@@ -275,7 +275,7 @@ def connectivity_summary(sgraph):
         sgraph: a SummaryGraph instance
     """
     df = pd.DataFrame(columns=['Name', 'Type', 'Inputs', 'Outputs'])
-    pd.set_option('precision', 5)
+    pd.set_option('display.precision', 5)
     for i, op in enumerate(sgraph.ops.values()):
         df.loc[i] = [op['name'], op['type'], op['inputs'], op['outputs']]
     return df
@@ -294,7 +294,7 @@ def connectivity_summary_verbose(sgraph):
         return ret[:-1]
 
     df = pd.DataFrame(columns=['Name', 'Type', 'Inputs', 'Outputs'])
-    pd.set_option('precision', 5)
+    pd.set_option('display.precision', 5)
     for i, op in enumerate(sgraph.ops.values()):
         outputs = []
         for blob in op['outputs']:
