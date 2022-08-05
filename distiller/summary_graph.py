@@ -148,7 +148,7 @@ class SummaryGraph(object):
         # See documentation of _DistillerModuleList class for details on why this is done
         model_clone, converted_module_names_map = _to_distiller_modulelist(model_clone)
 
-        with torch.onnx.set_training(model_clone, False):
+        with torch.onnx.select_model_mode_for_export(model_clone, torch.onnx.TrainingMode.EVAL):
             
             device = distiller.model_device(model_clone)
             dummy_input = distiller.convert_tensors_recursively_to(dummy_input, device=device)
@@ -171,9 +171,7 @@ class SummaryGraph(object):
                     trace, _ = torch.jit._get_trace_graph(model_clone, dummy_input, _force_outplace=True)
                     pre_dropout_nodes_scope_names = dropout_workaround(trace)
                     graph, _, _  = torch.onnx.utils._model_to_graph(model_clone, dummy_input, 
-                                                                    do_constant_folding=False,
-                                                                    propagate=True, _retain_param_name=False)
-
+                                                                    do_constant_folding=False)
 
             self.ops = OrderedDict()
             self.module_ops_map = defaultdict(list)
@@ -329,7 +327,11 @@ class SummaryGraph(object):
         try:
             # try parsing the FM tensor type.  For example: Float(1, 64, 8, 8)
             s = str(n.node())
-            s = s[s.find('(')+1: s.find(')')]
+            start = s.find('(') + 1
+            end = s.find(', strides', start)
+            if end == -1:
+                end = s.find(')', start)
+            s = s[start: end]
             tensor['shape'] = tuple(map(lambda x: int(x), s.split(',')))
         except ValueError:
             # Size not specified in type
@@ -393,8 +395,13 @@ class SummaryGraph(object):
                         group = op['attrs']['group']
                     else:
                         kernel_size, group = 1, 1
-                    n_ifm = self.param_shape(conv_in)[1]
-                    n_ofm = self.param_shape(conv_out)[1] 
+                    try:
+                        n_ifm = self.param_shape(conv_in)[1]
+                        n_ofm = self.param_shape(conv_out)[1]
+                    except IndexError:
+                        msglogger.error("An input to a Convolutional layer is missing shape information.")
+                        msglogger.error("For details see https://github.com/IntelLabs/distiller/issues/360")
+                        n_ifm = n_ofm = 0
                     weights_vol = kernel_size * n_ifm * n_ofm / group
                     op['attrs']['n_ifm'] = n_ifm
                     op['attrs']['n_ofm'] = n_ofm
