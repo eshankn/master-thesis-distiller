@@ -102,6 +102,9 @@ def dropout_workaround(graph):
     return pre_dropout_nodes_scope_names
 
 
+def _onnx_clean_name(n):
+    return n.debugName().lstrip('::onnx')
+
 
 class SummaryGraph(object):
     """We use Pytorch's JIT tracer to run a forward pass and generate a trace graph, which
@@ -241,11 +244,11 @@ class SummaryGraph(object):
 
                 for input_ in node.inputs():
                     self.__add_input(new_op, input_)
-                    self.edges.append(SummaryGraph.Edge(input_.debugName(), new_op['name']))
+                    self.edges.append(SummaryGraph.Edge(_onnx_clean_name(input_), new_op['name']))
 
                 for output in node.outputs():
                     self.__add_output(new_op, output)
-                    self.edges.append(SummaryGraph.Edge(new_op['name'], output.debugName()))
+                    self.edges.append(SummaryGraph.Edge(new_op['name'], _onnx_clean_name(output)))
 
                 new_op['attrs'] = OrderedDict([(attr_name, node[attr_name]) for attr_name in node.attributeNames()])
 
@@ -314,16 +317,17 @@ class SummaryGraph(object):
             op['outputs'].append(param['id'])
 
     def __add_param(self, n):
-        if n.debugName() not in self.params:
+        pname = _onnx_clean_name(n)
+        if pname not in self.params:
             param = self.__tensor_desc(n)
-            self.params[n.debugName()] = param
+            self.params[pname] = param
         else:
-            param = self.params[n.debugName()]
+            param = self.params[pname]
         return param
 
     def __tensor_desc(self, n):
         tensor = OrderedDict()
-        tensor['id'] = n.debugName()
+        tensor['id'] = _onnx_clean_name(n)
         try:
             # try parsing the FM tensor type.  For example: Float(1, 64, 8, 8)
             s = str(n.node())
