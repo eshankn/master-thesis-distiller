@@ -137,7 +137,7 @@ class SummaryGraph(object):
     """
     Edge = collections.namedtuple('Edge', 'src dst')
 
-    def __init__(self, model, dummy_input, apply_scope_name_workarounds=True):
+    def __init__(self, model, dummy_input, apply_scope_name_workarounds=True, separator='_'):
         self._src_model = model
         self._named_modules = OrderedDict(model.named_modules())
         self._adj_map = None
@@ -149,7 +149,7 @@ class SummaryGraph(object):
 
         # Switch all instances of torch.nn.ModuleList in the model to our DistillerModuleList
         # See documentation of _DistillerModuleList class for details on why this is done
-        model_clone, converted_module_names_map = _to_distiller_modulelist(model_clone)
+        model_clone, converted_module_names_map = _to_distiller_modulelist(model_clone, separator)
 
         with torch.onnx.select_model_mode_for_export(model_clone, torch.onnx.TrainingMode.EVAL):
             
@@ -780,8 +780,9 @@ class _DistillerModuleList(object):
           NOTE: This is expected to be the module containing the list, but we can't enforce this.
         modules (iterable, optional): An iterable of modules to initialize the list with
     """
-    def __init__(self, name, parent_module, modules=None):
+    def __init__(self, name, parent_module, modules=None, separator='_'):
         self.name = name
+        self.separator = separator
         if not isinstance(parent_module, nn.Module):
             raise TypeError('parent_module must be an instance of torch.nn.Module')
         self.parent_module = parent_module
@@ -790,11 +791,11 @@ class _DistillerModuleList(object):
             self.extend(modules)
 
     def _name_for_idx(self, idx):
-        return self.name + '_' + str(idx)
+        return self.name + self.separator  + str(idx)
 
     def _verify_on_insertion(self, module, idx):
         if isinstance(module, nn.ModuleList):
-            module = _DistillerModuleList(self._name_for_idx(idx), self.parent_module, module)
+            module = _DistillerModuleList(self._name_for_idx(idx), self.parent_module, module, self.separator)
         if isinstance(module, _DistillerModuleList):
             if module.parent_module != self.parent_module:
                 raise ValueError("When nesting one DistillerModuleList within another, both must have the same "
@@ -872,7 +873,7 @@ def _named_modules_with_duplicates(module, prefix=''):
             yield m
 
 
-def _to_distiller_modulelist(model):
+def _to_distiller_modulelist(model, separator):
     """Replaces all instances of torch.nn.ModuleList in a model with DistillerModuleList instances
 
     Args:
@@ -888,7 +889,7 @@ def _to_distiller_modulelist(model):
             delattr(container, n)
         for name, child in named_children.items():
             if isinstance(child, nn.ModuleList):
-                child = _DistillerModuleList(name, container, child)
+                child = _DistillerModuleList(name, container, child, separator)
                 to_check = child.modules()
             else:
                 to_check = [child]
