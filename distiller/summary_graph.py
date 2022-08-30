@@ -388,13 +388,13 @@ class SummaryGraph(object):
     def add_footprint_attr(self):
         for op in self.ops.values():
             op['attrs']['footprint'] = 0
-            if op['type'] in ['Conv', 'Gemm', 'MaxPool']:
+            if op['type'] in ('Conv', 'ConvTranspose', 'Gemm', 'MatMul', 'MaxPool', 'AvgPool'):
                 conv_out = op['outputs'][0]
                 conv_in = op['inputs'][0]
                 ofm_vol = self.param_volume(conv_out)
                 ifm_vol = self.param_volume(conv_in)
-                if op['type'] == 'Conv' or op['type'] == 'Gemm':
-                    if op['type'] == 'Conv':
+                if op['type'] in ('Conv', 'ConvTranspose', 'Gemm', 'MatMul'):
+                    if op['type'] in ('Conv', 'ConvTranspose'):
                         kernel_size =  self.volume(op['attrs']['kernel_shape'])
                         group = op['attrs']['group']
                     else:
@@ -412,7 +412,7 @@ class SummaryGraph(object):
                     op['attrs']['footprint'] = ofm_vol + ifm_vol + weights_vol
                     op['attrs']['fm_vol'] = ofm_vol + ifm_vol
                     op['attrs']['weights_vol'] = weights_vol
-                elif op['type'] == 'MaxPool':
+                else:
                     op['attrs']['footprint'] = ofm_vol + ifm_vol
 
     def add_arithmetic_intensity_attr(self):
