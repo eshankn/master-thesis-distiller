@@ -199,8 +199,16 @@ class SummaryGraph(object):
                 # Convert the graph node's scope name to a PyTorch module name
                 module_name = onnx_name_2_pytorch_name(new_op['orig-name'])
 
-                # Get name from before conversion to DistillerModuleList
-                module_name = converted_module_names_map[module_name]
+                if module_name in converted_module_names_map:
+                    # Get name from before conversion to DistillerModuleList
+                    module_name = converted_module_names_map[module_name]
+                else:
+                    # Use the name we have, which is OK for some uses of SummaryGraph
+                    module_name = re.sub('\[|\]|/', '.', new_op['orig-name'])
+                    if module_name[-1] == '.':
+                        module_name = module_name[:-1]
+                    if module_name[0] == '.':
+                        module_name = module_name[1:]
 
                 if len(module_name) == 0:
                     # Special case where the module name is an empty string - this happens
