@@ -68,7 +68,7 @@ def __dataset_factory(dataset, arch):
 def load_data(dataset, arch, data_dir,
               batch_size, workers, validation_split=0.1, deterministic=False,
               effective_train_size=1., effective_valid_size=1., effective_test_size=1.,
-              fixed_subset=False, sequential=False, test_only=False):
+              fixed_subset=False, sequential=False, test_only=False, cpu=False):
     """Load a dataset.
 
     Args:
@@ -98,7 +98,8 @@ def load_data(dataset, arch, data_dir,
                             effective_test_size=effective_test_size,
                             fixed_subset=fixed_subset,
                             sequential=sequential,
-                            test_only=test_only)
+                            test_only=test_only,
+                            cpu=cpu)
 
 
 def mnist_get_datasets(data_dir, load_train=True, load_test=True):
@@ -287,7 +288,7 @@ def _get_sampler(data_source, effective_size, fixed_subset=False, sequential=Fal
 
 def get_data_loaders(datasets_fn, data_dir, batch_size, num_workers, validation_split=0.1, deterministic=False,
                      effective_train_size=1., effective_valid_size=1., effective_test_size=1., fixed_subset=False,
-                     sequential=False, test_only=False, collate_fn=None):
+                     sequential=False, test_only=False, collate_fn=None, cpu=False):
     train_dataset, test_dataset = datasets_fn(data_dir, load_train=not test_only, load_test=True)
 
     worker_init_fn = None
@@ -295,11 +296,13 @@ def get_data_loaders(datasets_fn, data_dir, batch_size, num_workers, validation_
         distiller.set_deterministic()
         worker_init_fn = __deterministic_worker_init_fn
 
+    pin_memory = num_workers == 0 and not cpu
+
     test_indices = list(range(len(test_dataset)))
     test_sampler = _get_sampler(test_indices, effective_test_size, fixed_subset, sequential)
     test_loader = torch.utils.data.DataLoader(test_dataset,
                                               batch_size=batch_size, sampler=test_sampler,
-                                              num_workers=num_workers, pin_memory=num_workers == 0, collate_fn=collate_fn)
+                                              num_workers=num_workers, pin_memory=pin_memory, collate_fn=collate_fn)
 
     input_shape = __image_size(test_dataset)
 
@@ -320,7 +323,7 @@ def get_data_loaders(datasets_fn, data_dir, batch_size, num_workers, validation_
     train_sampler = _get_sampler(train_indices, effective_train_size, fixed_subset, sequential)
     train_loader = torch.utils.data.DataLoader(train_dataset,
                                                batch_size=batch_size, sampler=train_sampler,
-                                               num_workers=num_workers, pin_memory=num_workers == 0,
+                                               num_workers=num_workers, pin_memory=pin_memory,
                                                worker_init_fn=worker_init_fn, collate_fn=collate_fn)
 
     valid_loader = None
@@ -328,7 +331,7 @@ def get_data_loaders(datasets_fn, data_dir, batch_size, num_workers, validation_
         valid_sampler = _get_sampler(valid_indices, effective_valid_size, fixed_subset, sequential)
         valid_loader = torch.utils.data.DataLoader(train_dataset,
                                                    batch_size=batch_size, sampler=valid_sampler,
-                                                   num_workers=num_workers, pin_memory=num_workers == 0,
+                                                   num_workers=num_workers, pin_memory=pin_memory,
                                                    worker_init_fn=worker_init_fn, collate_fn=collate_fn)
 
     # If validation split was 0 we use the test set as the validation set
