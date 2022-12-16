@@ -25,6 +25,7 @@ import logging
 from pkg_resources import parse_version
 from collections import OrderedDict, defaultdict
 from collections.abc import MutableSequence, Iterable
+from torch.onnx import symbolic_helper
 msglogger = logging.getLogger()
 
 # see: https://github.com/pytorch/pytorch/issues/33463#issuecomment-606399944
@@ -256,7 +257,7 @@ class SummaryGraph(object):
                     self.__add_output(new_op, output)
                     self.edges.append(SummaryGraph.Edge(new_op['name'], _onnx_clean_name(output)))
 
-                new_op['attrs'] = OrderedDict([(attr_name, node[attr_name]) for attr_name in node.attributeNames()])
+                new_op['attrs'] = OrderedDict([(attr_name, symbolic_helper._node_get(node, attr_name)) for attr_name in node.attributeNames()])
 
         self.__merge_pad_avgpool()
         self.add_macs_attr()
