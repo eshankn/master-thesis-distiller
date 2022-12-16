@@ -145,8 +145,6 @@ class SummaryGraph(object):
         self._top_level_ops = set()
         model_clone = distiller.make_non_parallel_copy(model)
 
-        torch.onnx.symbolic_helper._set_opset_version(11)
-
         # Switch all instances of torch.nn.ModuleList in the model to our DistillerModuleList
         # See documentation of _DistillerModuleList class for details on why this is done
         model_clone, converted_module_names_map = _to_distiller_modulelist(model_clone, separator)
