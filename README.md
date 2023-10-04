@@ -3,7 +3,7 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/IntelLabs/distiller/blob/master/LICENSE)
 [![DOI](https://zenodo.org/badge/130871393.svg)](https://zenodo.org/badge/latestdoi/130871393)
 
-**NOTE** This version is a minimal upgrade to PyTorch 1.8/2.0 that works for one specific use case. The TensorBoard logger backend was replaced to eliminate TensorFlow dependencies.
+**NOTE** This version is a minimal upgrade to PyTorch 2.1 that works for one specific use case. The TensorBoard logger backend was replaced to eliminate TensorFlow dependencies.
 
 <div align="center">
   <h3>
