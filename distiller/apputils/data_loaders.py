@@ -1,7 +1,6 @@
 #
-# Portions Copyright (C) 2019-2023 Maxim Integrated Products, Inc.
-#
 # Copyright (c) 2018 Intel Corporation
+# Portions Copyright (C) 2019-2023 Maxim Integrated Products, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,6 +24,7 @@ import os
 import torch
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
+from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data.sampler import Sampler
 from functools import partial
 import numpy as np
@@ -36,9 +36,9 @@ DATASETS_NAMES = ['imagenet', 'cifar10', 'mnist']
 
 def classification_dataset_str_from_arch(arch):
     if 'cifar' in arch:
-        dataset = 'cifar10' 
+        dataset = 'cifar10'
     elif 'mnist' in arch:
-        dataset = 'mnist' 
+        dataset = 'mnist'
     else:
         dataset = 'imagenet'
     return dataset
@@ -169,7 +169,7 @@ def cifar10_get_datasets(data_dir, load_train=True, load_test=True):
 
     return train_dataset, test_dataset
 
-  
+
 def imagenet_get_datasets(data_dir, arch, load_train=True, load_test=True):
     """
     Load the ImageNet dataset.
@@ -290,7 +290,8 @@ def _get_sampler(data_source, effective_size, fixed_subset=False, sequential=Fal
 
 def get_data_loaders(datasets_fn, data_dir, batch_size, num_workers, validation_split=0.1, deterministic=False,
                      effective_train_size=1., effective_valid_size=1., effective_test_size=1., fixed_subset=False,
-                     sequential=False, test_only=False, collate_fn=None, cpu=False):
+                     sequential=False, test_only=False, collate_fn=None, cpu=False, distributed=False,
+                     rank=None, world_size=None):
     train_dataset, test_dataset = datasets_fn(data_dir, load_train=not test_only, load_test=True)
 
     worker_init_fn = None
@@ -309,7 +310,7 @@ def get_data_loaders(datasets_fn, data_dir, batch_size, num_workers, validation_
     input_shape = __image_size(test_dataset)
 
     if test_only:
-        return None, None, test_loader, input_shape
+        return None, None, test_loader, input_shape, None
 
     num_train = len(train_dataset)
     indices = list(range(num_train))
@@ -327,7 +328,13 @@ def get_data_loaders(datasets_fn, data_dir, batch_size, num_workers, validation_
 
         valid_indices, train_indices = __split_list(indices, validation_split)
 
-    train_sampler = _get_sampler(train_indices, effective_train_size, fixed_subset, sequential)
+    if distributed:
+        # We only support a limited subset of the functionality in distributed mode
+        assert effective_train_size == 1. and not fixed_subset and not sequential
+        train_sampler = DistributedSampler(dataset=train_indices, num_replicas=world_size, rank=rank)
+    else:
+        train_sampler = _get_sampler(train_indices, effective_train_size, fixed_subset, sequential)
+
     train_loader = torch.utils.data.DataLoader(train_dataset,
                                                batch_size=batch_size, sampler=train_sampler,
                                                num_workers=num_workers, pin_memory=pin_memory,
@@ -342,4 +349,4 @@ def get_data_loaders(datasets_fn, data_dir, batch_size, num_workers, validation_
                                                    worker_init_fn=worker_init_fn, collate_fn=collate_fn)
 
     # If validation split was 0 we use the test set as the validation set
-    return train_loader, valid_loader or test_loader, test_loader, input_shape
+    return train_loader, valid_loader or test_loader, test_loader, input_shape, train_sampler
