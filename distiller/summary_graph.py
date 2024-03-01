@@ -76,7 +76,7 @@ def onnx_name_2_pytorch_name(name):
     #   ResNet/Sequential[layer3]/BasicBlock[0]/ReLU[relu] ==> layer3.0.relu
 
     # Split by square brackets
-    name_parts = re.findall('\[.*?\]', name)
+    name_parts = re.findall(r'\[.*?\]', name)
     name_parts = [part[1:-1] for part in name_parts]
 
     return '.'.join(name_parts)
@@ -205,7 +205,7 @@ class SummaryGraph(object):
                     module_name = converted_module_names_map[module_name]
                 else:
                     # Use the name we have, which is OK for some uses of SummaryGraph
-                    module_name = re.sub('\[|\]|/', '.', new_op['orig-name'])
+                    module_name = re.sub(r'\[|\]|/', '.', new_op['orig-name'])
                     if module_name[-1] == '.':
                         module_name = module_name[:-1]
                     if module_name[0] == '.':
