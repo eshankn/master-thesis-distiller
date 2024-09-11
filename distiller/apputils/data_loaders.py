@@ -239,14 +239,24 @@ class SwitchingSubsetRandomSampler(Sampler):
         data_source (Dataset): dataset to sample from
         subset_size (float): value in (0..1], representing the portion of dataset to sample at each enumeration.
     """
-    def __init__(self, data_source, effective_size):
+    def __init__(self, data_source, effective_size, rand_data):
         self.data_source = data_source
         self.subset_length = _get_subset_length(data_source, effective_size)
+        self.rand_data = rand_data
+        pass
 
     def __iter__(self):
         # Randomizing in the same way as in torch.utils.data.sampler.SubsetRandomSampler to maintain
         # reproducibility with the previous data loaders implementation
-        indices = torch.randperm(len(self.data_source))
+
+        # Implemented for evaluation of AccuracyMetrics on test data
+        # Check for randomization of data. Data should not be randomized for AccuracyMetrics
+        if self.rand_data:
+            # Original implementation from Analog Devices
+            indices = torch.randperm(len(self.data_source))
+        else:
+            # To segregate each channel prediction, ensure data indices are sequential and not randomized
+            indices = torch.arange(len(self.data_source))
         subset_indices = indices[:self.subset_length]
         return (self.data_source[i] for i in subset_indices)
 
@@ -276,7 +286,7 @@ def _get_subset_length(data_source, effective_size):
     return int(np.floor(len(data_source) * effective_size))
 
 
-def _get_sampler(data_source, effective_size, fixed_subset=False, sequential=False):
+def _get_sampler(data_source, effective_size, fixed_subset=False, sequential=False, rand_data=True):
     if fixed_subset:
         subset_length = _get_subset_length(data_source, effective_size)
         indices = np.random.permutation(len(data_source))
@@ -285,12 +295,12 @@ def _get_sampler(data_source, effective_size, fixed_subset=False, sequential=Fal
             return SubsetSequentialSampler(subset_indices)
         else:
             return torch.utils.data.SubsetRandomSampler(subset_indices)
-    return SwitchingSubsetRandomSampler(data_source, effective_size)
+    return SwitchingSubsetRandomSampler(data_source, effective_size, rand_data)
 
 
 def get_data_loaders(datasets_fn, data_dir, batch_size, num_workers, validation_split=0.1, deterministic=False,
                      effective_train_size=1., effective_valid_size=1., effective_test_size=1., fixed_subset=False,
-                     sequential=False, test_only=False, collate_fn=None, cpu=False):
+                     sequential=False, test_only=False, collate_fn=None, cpu=False, rand_data=True):
     train_dataset, test_dataset = datasets_fn(data_dir, load_train=not test_only, load_test=True)
 
     worker_init_fn = None
@@ -301,7 +311,7 @@ def get_data_loaders(datasets_fn, data_dir, batch_size, num_workers, validation_
     pin_memory = not cpu
 
     test_indices = list(range(len(test_dataset)))
-    test_sampler = _get_sampler(test_indices, effective_test_size, fixed_subset, sequential)
+    test_sampler = _get_sampler(test_indices, effective_test_size, fixed_subset, sequential, rand_data)
     test_loader = torch.utils.data.DataLoader(test_dataset,
                                               batch_size=batch_size, sampler=test_sampler,
                                               num_workers=num_workers, pin_memory=pin_memory, collate_fn=collate_fn)
