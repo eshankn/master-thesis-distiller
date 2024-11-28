@@ -300,7 +300,8 @@ def _get_sampler(data_source, effective_size, fixed_subset=False, sequential=Fal
 
 def get_data_loaders(datasets_fn, data_dir, batch_size, num_workers, validation_split=0.1, deterministic=False,
                      effective_train_size=1., effective_valid_size=1., effective_test_size=1., fixed_subset=False,
-                     sequential=False, test_only=False, collate_fn=None, cpu=False, rand_data=True):
+                     sequential=False, test_only=False, collate_fn=None, cpu=False, rand_data=True,
+                     custom_shuffle_split=False):
     train_dataset, test_dataset = datasets_fn(data_dir, load_train=not test_only, load_test=True)
 
     worker_init_fn = None
@@ -333,9 +334,12 @@ def get_data_loaders(datasets_fn, data_dir, batch_size, num_workers, validation_
     else:
         # We shuffle indices here in case the data is arranged by class, in which case we'd would get mutually
         # exclusive datasets if we didn't shuffle
-        np.random.shuffle(indices)
+        if not custom_shuffle_split:
+            np.random.shuffle(indices)
 
-        valid_indices, train_indices = __split_list(indices, validation_split)
+            valid_indices, train_indices = __split_list(indices, validation_split)
+        else:
+            train_indices, valid_indices = __split_list(indices, 1 - validation_split)
 
     train_sampler = _get_sampler(train_indices, effective_train_size, fixed_subset, sequential)
     train_loader = torch.utils.data.DataLoader(train_dataset,
